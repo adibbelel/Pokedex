@@ -1,10 +1,14 @@
 package main
 
 import (
+  "encoding/json"
   "bufio"
   "strings"
   "fmt"
   "os"
+  "io"
+  "log"
+  "net/http"
 )
 
 type cliCommands struct {
@@ -13,7 +17,19 @@ type cliCommands struct {
   callback func() error
 }
 
+type config struct {
+  Next     *string `json:"next"`
+  Previous *string `json:"previous"`
+  Results []LocationArea `json: "results"`
+}
+
+type LocationArea struct {
+  Name string `json:"name"`
+  URL  string `json:"url"`
+}
+
 var commands map[string]cliCommands
+var cache *config
 
 func init() {
    commands = map[string]cliCommands{
@@ -27,6 +43,18 @@ func init() {
       name: "help",
       description: "Displays a help message",
       callback: commandHelp,
+    },
+
+    "map": {
+      name: "map",
+      description: "Displays Pokemon world locations",
+      callback: commandMap,
+    },
+
+    "mapb": {
+      name: "mapb",
+      description: "Goes back to previous world locations",
+      callback: commandMapb,
     },
   }
 }
@@ -53,8 +81,74 @@ func commandHelp() error {
   return nil
 }
 
+func commandMap() error {
+  url := "https://pokeapi.co/api/v2/location-area"
+  if cache != nil && cache.Next != nil {
+    url = *cache.Next
+  }
+
+  res, err := http.Get(url)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  body, err := io.ReadAll(res.Body)
+  res.Body.Close()
+	if res.StatusCode > 299 {
+		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+  config1 := config{}
+  jsonErr := json.Unmarshal(body, &config1)
+  if jsonErr != nil {
+    log.Fatal(jsonErr)
+  }
+
+  cache = &config1
+
+  for _, area := range config1.Results {
+    fmt.Println(area.Name)
+  }  
+
+  return nil
+}
+
+func commandMapb() error {
+  if cache == nil || cache.Previous == nil {
+    return fmt.Errorf("you're on the first page")
+  } 
+  res, err := http.Get(*cache.Previous)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  body, err := io.ReadAll(res.Body)
+  res.Body.Close()
+	if res.StatusCode > 299 {
+		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+  config1 := config{}
+  jsonErr := json.Unmarshal(body, &config1)
+  if jsonErr != nil {
+    log.Fatal(jsonErr)
+  }
+
+  for _, area := range config1.Results {
+    fmt.Println(area.Name)
+  }  
+
+  return nil
+}
+
 func main() {
- scanner := bufio.NewScanner(os.Stdin)
+  scanner := bufio.NewScanner(os.Stdin)
   for { 
     fmt.Print("Pokedex > ")
     scanner.Scan()
@@ -80,7 +174,4 @@ func main() {
     
   }
 }
-
- 
-
 
