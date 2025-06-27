@@ -1,6 +1,7 @@
 package main
 
 import (
+  "time"
   "encoding/json"
   "bufio"
   "strings"
@@ -9,18 +10,19 @@ import (
   "io"
   "log"
   "net/http"
+  "github.com/adibbelel/pokedexcli/internal/pokecache"
 )
 
 type cliCommands struct {
   name string
   description string
-  callback func() error
+  callback func(*config, *Cache) error
 }
 
 type config struct {
   Next     *string `json:"next"`
   Previous *string `json:"previous"`
-  Results []LocationArea `json: "results"`
+  Results []LocationArea `json:"results"`
 }
 
 type LocationArea struct {
@@ -28,11 +30,9 @@ type LocationArea struct {
   URL  string `json:"url"`
 }
 
-var commands map[string]cliCommands
-var cache *config
 
-func init() {
-   commands = map[string]cliCommands{
+func getCommands() map[string]cliCommands{
+   return map[string]cliCommands{
     "exit": {
       name: "exit",
       description: "Exit the Pokedex",
@@ -65,26 +65,26 @@ func cleanInput(text string) []string {
 	return output
 }
 
-func commandExit() error {
+func commandExit(cfg *config, cache *Cache) error {
   fmt.Print("Closing the Pokedex... Goodbye!")
   os.Exit(0)
   return nil
 }
 
-func commandHelp() error {
+func commandHelp(cfg *config, cache *Cache) error {
   fmt.Println("Welcome to the Pokedex!")
   fmt.Println("Usage:")
   fmt.Println("")
-  for _, value := range commands {
+  for _, value := range getCommands() {
     fmt.Printf("%s: %s\n", value.name, value.description)
   }
   return nil
 }
 
-func commandMap() error {
+func commandMap(cfg *config, cache *Cache) error {
   url := "https://pokeapi.co/api/v2/location-area"
-  if cache != nil && cache.Next != nil {
-    url = *cache.Next
+  if cfg != nil && cfg.Next != nil {
+    url = *cfg.Next
   }
 
   res, err := http.Get(url)
@@ -107,7 +107,7 @@ func commandMap() error {
     log.Fatal(jsonErr)
   }
 
-  cache = &config1
+  *cfg = config1
 
   for _, area := range config1.Results {
     fmt.Println(area.Name)
@@ -116,11 +116,11 @@ func commandMap() error {
   return nil
 }
 
-func commandMapb() error {
-  if cache == nil || cache.Previous == nil {
+func commandMapb(cfg *config, cache *Cache) error {
+  if cfg == nil || cfg.Previous == nil {
     return fmt.Errorf("you're on the first page")
   } 
-  res, err := http.Get(*cache.Previous)
+  res, err := http.Get(*cfg.Previous)
   if err != nil {
     log.Fatal(err)
   }
@@ -140,7 +140,8 @@ func commandMapb() error {
     log.Fatal(jsonErr)
   }
 
-  for _, area := range config1.Results {
+  *cfg = config1
+  for _, area := range cfg.Results {
     fmt.Println(area.Name)
   }  
 
@@ -148,7 +149,10 @@ func commandMapb() error {
 }
 
 func main() {
+  cfg := &config{}
   scanner := bufio.NewScanner(os.Stdin)
+  cache := pokecache.NewCache(5 * time.Minute)
+  go cache.reapLoop(1 * time.Minute)
   for { 
     fmt.Print("Pokedex > ")
     scanner.Scan()
@@ -159,10 +163,10 @@ func main() {
     }
     
     command := input[0]
-    cmd, value := commands[command]
+    cmd, value := getCommands()[command]
     
     if value {
-      err := cmd.callback()
+      err := cmd.callback(cfg, cache)
       if err != nil {
         fmt.Println("Error:", err)
       }
