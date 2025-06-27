@@ -47,7 +47,7 @@ func (c *Cache) Get(key string) ([]byte, bool) {
   return entry.val, true
 } 
 
-func (c *Cache) reapLoop(interval time.Duration) {
+func (c *Cache) ReapLoop(interval time.Duration) {
   ticker := time.NewTicker(interval)
   defer ticker.Stop()
 
