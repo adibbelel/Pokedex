@@ -9,6 +9,7 @@ import (
   "encoding/json"
   "os"
   "log"
+  "math/rand"
 )
 
 func getCommands() map[string]cliCommands{
@@ -42,7 +43,31 @@ func getCommands() map[string]cliCommands{
       description: "input 'explore <location name>' to explore entered location",
       callback: commandExplore,
     },
+
+    "catch": {
+      name: "catch",
+      description: "input 'catch <pokemon name>' to throw pokeball",
+      callback: commandCatch,
+    },
   }
+}
+
+func getResponseBody(url string) []byte {
+    res, err := http.Get(url)
+  if err != nil {
+    log.Fatal(err)
+  }
+
+  body, err := io.ReadAll(res.Body)
+  res.Body.Close()
+	if res.StatusCode > 299 {
+		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+  return body
 }
 
 func cleanInput(text string) []string {
@@ -86,19 +111,7 @@ func commandMap(cfg *config, cache *pokecache.Cache, parameter string) error {
     printLocations(cfg.Results)
   }
 
-  res, err := http.Get(url)
-  if err != nil {
-    log.Fatal(err)
-  }
-
-  body, err := io.ReadAll(res.Body)
-  res.Body.Close()
-	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
+  body := getResponseBody(url)
   cache.Add(url, body)
 
   config1 := config{}
@@ -114,24 +127,12 @@ func commandMap(cfg *config, cache *pokecache.Cache, parameter string) error {
 }
 
 func commandMapb(cfg *config, cache *pokecache.Cache, parameter string) error {
-
   if cfg.Previous == nil {
     return fmt.Errorf("you're on the first page")
   } 
-  res, err := http.Get(*cfg.Previous)
-  if err != nil {
-    log.Fatal(err)
-  }
 
-  body, err := io.ReadAll(res.Body)
-  res.Body.Close()
-	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-
+  url := *cfg.Previous
+  body := getResponseBody(url)
   config1 := config{}
   jsonErr := json.Unmarshal(body, &config1)
   if jsonErr != nil {
@@ -147,6 +148,7 @@ func commandMapb(cfg *config, cache *pokecache.Cache, parameter string) error {
 func commandExit(cfg *config, cache *pokecache.Cache, parameter string) error {
   fmt.Print("Closing the Pokedex... Goodbye!")
   os.Exit(0)
+
   return nil
 }
 
@@ -164,19 +166,7 @@ func commandExplore(cfg *config, cache *pokecache.Cache, location string) error 
   fmt.Printf("Exploring %s...\n", location)
   url := "https://pokeapi.co/api/v2/location-area/" + location 
 
-  res, err := http.Get(url)
-  if err != nil {
-    log.Fatal(err)
-  }
-  defer res.Body.Close()
-
-  body, err := io.ReadAll(res.Body)
-	if res.StatusCode > 299 {
-		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
+  body := getResponseBody(url)
 
   config1 := LocationArea{}
   jsonErr := json.Unmarshal(body, &config1)
@@ -185,6 +175,32 @@ func commandExplore(cfg *config, cache *pokecache.Cache, location string) error 
   }
 
   printPokemon(config1.PokemonEncounter)
+
+  return nil
+}
+
+func commandCatch (cfg *config, cache *pokecache.Cache, name string) error {
+  fmt.Printf("Throwing a Pokeball at %s...", name)
+  url := "https://pokeapi.co/api/v2/pokemon/" + name
+
+  body := getResponseBody(url)
+
+  config1 := PokeStats{}
+  jsonErr := json.Unmarshal(body, &config1)
+  if jsonErr != nil {
+    log.Fatal(jsonErr)
+  }
+
+  probablility := rand.Intn(config1.BaseExperience) % 10
+
+  if probablility > 8 {
+    fmt.Printf("%s was caught!\n", name)
+
+    return nil
+  }
+
+  fmt.Printf("%s escaped!\n", name)
+  
 
   return nil
 }
