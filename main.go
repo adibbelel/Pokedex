@@ -23,10 +23,14 @@ func main() {
     }
     
     command := input[0]
+    var parameter string
+    if len(input) > 1 {
+      parameter = input[1]
+    }
     cmd, value := getCommands()[command]
     
     if value {
-      err := cmd.callback(cfg, cache)
+      err := cmd.callback(cfg, cache, parameter)
       if err != nil {
         fmt.Println("Error:", err)
       }

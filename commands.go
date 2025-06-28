@@ -36,6 +36,12 @@ func getCommands() map[string]cliCommands{
       description: "Goes back to previous world locations",
       callback: commandMapb,
     },
+
+    "explore": {
+      name: "explore",
+      description: "input 'explore <location name>' to explore entered location",
+      callback: commandExplore,
+    },
   }
 }
 
@@ -45,20 +51,15 @@ func cleanInput(text string) []string {
 	return output
 }
 
-func commandExit(cfg *config, cache *pokecache.Cache) error {
-  fmt.Print("Closing the Pokedex... Goodbye!")
-  os.Exit(0)
-  return nil
-}
-
-func commandHelp(cfg *config, cache *pokecache.Cache) error {
-  fmt.Println("Welcome to the Pokedex!")
-  fmt.Println("Usage:")
-  fmt.Println("")
-  for _, value := range getCommands() {
-    fmt.Printf("%s: %s\n", value.name, value.description)
+func printPokemon (PokemonEncounter []PokemonEncounters) {
+  if len(PokemonEncounter) == 0 {
+    fmt.Println("No Pokemon found in this location")
   }
-  return nil
+
+  fmt.Println("Found Pokemon:")
+  for _, pokemons := range PokemonEncounter {
+    fmt.Println("  - ", pokemons.Pokemon.Name)
+  }
 }
 
 func printLocations (areas []LocationArea) {
@@ -67,7 +68,7 @@ func printLocations (areas []LocationArea) {
   }  
 }
 
-func commandMap(cfg *config, cache *pokecache.Cache) error {
+func commandMap(cfg *config, cache *pokecache.Cache, parameter string) error {
   url := "https://pokeapi.co/api/v2/location-area"
 
   if cfg != nil && cfg.Next != nil {
@@ -82,7 +83,7 @@ func commandMap(cfg *config, cache *pokecache.Cache) error {
     }
 
     *cfg = cacheConfig
-    printLocations(cacheConfig.Results)
+    printLocations(cfg.Results)
   }
 
   res, err := http.Get(url)
@@ -107,13 +108,14 @@ func commandMap(cfg *config, cache *pokecache.Cache) error {
   }
 
   *cfg = config1
-  printLocations(config1.Results)
+  printLocations(cfg.Results)
 
   return nil
 }
 
-func commandMapb(cfg *config, cache *pokecache.Cache) error {
-  if cfg == nil || cfg.Previous == nil {
+func commandMapb(cfg *config, cache *pokecache.Cache, parameter string) error {
+
+  if cfg.Previous == nil {
     return fmt.Errorf("you're on the first page")
   } 
   res, err := http.Get(*cfg.Previous)
@@ -137,9 +139,52 @@ func commandMapb(cfg *config, cache *pokecache.Cache) error {
   }
 
   *cfg = config1
-  for _, area := range cfg.Results {
-    fmt.Println(area.Name)
-  }  
+  printLocations(cfg.Results)
+
+  return nil
+}
+
+func commandExit(cfg *config, cache *pokecache.Cache, parameter string) error {
+  fmt.Print("Closing the Pokedex... Goodbye!")
+  os.Exit(0)
+  return nil
+}
+
+func commandHelp(cfg *config, cache *pokecache.Cache, parameter string) error {
+  fmt.Println("Welcome to the Pokedex!")
+  fmt.Println("Usage:")
+  fmt.Println("")
+  for _, value := range getCommands() {
+    fmt.Printf("%s: %s\n", value.name, value.description)
+  }
+  return nil
+}
+
+func commandExplore(cfg *config, cache *pokecache.Cache, location string) error {
+  fmt.Printf("Exploring %s...\n", location)
+  url := "https://pokeapi.co/api/v2/location-area/" + location 
+
+  res, err := http.Get(url)
+  if err != nil {
+    log.Fatal(err)
+  }
+  defer res.Body.Close()
+
+  body, err := io.ReadAll(res.Body)
+	if res.StatusCode > 299 {
+		log.Fatalf("Response failed with status code: %d and\nbody: %s\n", res.StatusCode, body)
+	}
+	if err != nil {
+		log.Fatal(err)
+	}
+
+  config1 := LocationArea{}
+  jsonErr := json.Unmarshal(body, &config1)
+  if jsonErr != nil {
+    log.Fatal(jsonErr)
+  }
+
+  printPokemon(config1.PokemonEncounter)
 
   return nil
 }

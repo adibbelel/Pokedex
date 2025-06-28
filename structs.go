@@ -7,7 +7,7 @@ import (
 type cliCommands struct {
   name string
   description string
-  callback func(*config, *pokecache.Cache) error
+  callback func(*config, *pokecache.Cache, string) error
 }
 
 type config struct {
@@ -17,6 +17,30 @@ type config struct {
 }
 
 type LocationArea struct {
-  Name string `json:"name"`
-  URL  string `json:"url"`
+	Name                 string `json:"name"`
+	PokemonEncounter []PokemonEncounters `json:"pokemon_encounters"`
 }
+
+
+type PokemonEncounters struct {
+  Pokemon struct {
+    Name string `json:"name"`
+  } `json:"pokemon"`
+  VersionDetails []struct {
+    Version struct {
+      Name string `json:"name"`
+      URL  string `json:"url"`
+    } `json:"version"`
+    MaxChance        int `json:"max_chance"`
+    EncounterDetails []struct {
+      MinLevel        int   `json:"min_level"`
+      MaxLevel        int   `json:"max_level"`
+      ConditionValues []any `json:"condition_values"`
+      Chance          int   `json:"chance"`
+      Method          struct {
+        Name string `json:"name"`
+        URL  string `json:"url"`
+      } `json:"method"`
+    } `json:"encounter_details"`
+  } `json:"version_details"`
+} 
