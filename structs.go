@@ -7,7 +7,7 @@ import (
 type cliCommands struct {
   name string
   description string
-  callback func(*config, *pokecache.Cache, string) error
+  callback func(*config, *pokecache.Cache, string, map[string]PokeStats) error
 }
 
 type config struct {

@@ -93,7 +93,7 @@ func printLocations (areas []LocationArea) {
   }  
 }
 
-func commandMap(cfg *config, cache *pokecache.Cache, parameter string) error {
+func commandMap(cfg *config, cache *pokecache.Cache, parameter string, pokedex map[string]PokeStats) error {
   url := "https://pokeapi.co/api/v2/location-area"
 
   if cfg != nil && cfg.Next != nil {
@@ -126,7 +126,7 @@ func commandMap(cfg *config, cache *pokecache.Cache, parameter string) error {
   return nil
 }
 
-func commandMapb(cfg *config, cache *pokecache.Cache, parameter string) error {
+func commandMapb(cfg *config, cache *pokecache.Cache, parameter string, pokedex map[string]PokeStats) error {
   if cfg.Previous == nil {
     return fmt.Errorf("you're on the first page")
   } 
@@ -145,14 +145,14 @@ func commandMapb(cfg *config, cache *pokecache.Cache, parameter string) error {
   return nil
 }
 
-func commandExit(cfg *config, cache *pokecache.Cache, parameter string) error {
+func commandExit(cfg *config, cache *pokecache.Cache, parameter string, pokedex map[string]PokeStats) error {
   fmt.Print("Closing the Pokedex... Goodbye!")
   os.Exit(0)
 
   return nil
 }
 
-func commandHelp(cfg *config, cache *pokecache.Cache, parameter string) error {
+func commandHelp(cfg *config, cache *pokecache.Cache, parameter string, pokedex map[string]PokeStats) error {
   fmt.Println("Welcome to the Pokedex!")
   fmt.Println("Usage:")
   fmt.Println("")
@@ -162,7 +162,7 @@ func commandHelp(cfg *config, cache *pokecache.Cache, parameter string) error {
   return nil
 }
 
-func commandExplore(cfg *config, cache *pokecache.Cache, location string) error {
+func commandExplore(cfg *config, cache *pokecache.Cache, location string, pokedex map[string]PokeStats) error {
   fmt.Printf("Exploring %s...\n", location)
   url := "https://pokeapi.co/api/v2/location-area/" + location 
 
@@ -179,8 +179,8 @@ func commandExplore(cfg *config, cache *pokecache.Cache, location string) error 
   return nil
 }
 
-func commandCatch (cfg *config, cache *pokecache.Cache, name string) error {
-  fmt.Printf("Throwing a Pokeball at %s...", name)
+func commandCatch (cfg *config, cache *pokecache.Cache, name string, pokedex map[string]PokeStats) error {
+  fmt.Printf("Throwing a Pokeball at %s...\n", name)
   url := "https://pokeapi.co/api/v2/pokemon/" + name
 
   body := getResponseBody(url)
@@ -195,12 +195,13 @@ func commandCatch (cfg *config, cache *pokecache.Cache, name string) error {
 
   if probablility > 8 {
     fmt.Printf("%s was caught!\n", name)
-
+    pokedex[name] = config1
     return nil
   }
 
   fmt.Printf("%s escaped!\n", name)
   
-
   return nil
 }
+
+func 

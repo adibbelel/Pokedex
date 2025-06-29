@@ -9,6 +9,7 @@ import (
 )
 
 func main() {
+  Pokedex := make(map[string]PokeStats)
   cfg := &config{}
   cache := pokecache.NewCache(5 * time.Minute)
   go cache.ReapLoop(1 * time.Minute)
@@ -30,7 +31,7 @@ func main() {
     cmd, value := getCommands()[command]
     
     if value {
-      err := cmd.callback(cfg, cache, parameter)
+      err := cmd.callback(cfg, cache, parameter, Pokedex)
       if err != nil {
         fmt.Println("Error:", err)
       }
