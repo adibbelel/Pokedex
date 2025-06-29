@@ -49,6 +49,18 @@ func getCommands() map[string]cliCommands{
       description: "input 'catch <pokemon name>' to throw pokeball",
       callback: commandCatch,
     },
+
+    "inspect": {
+      name: "inspect",
+      description: "check caught pokemon stats",
+      callback: commandInspect,
+    },
+
+    "pokedex": {
+      name: "pokedex",
+      description: "open your pokedex",
+      callback: commandPokedex,
+    },
   }
 }
 
@@ -146,7 +158,7 @@ func commandMapb(cfg *config, cache *pokecache.Cache, parameter string, pokedex 
 }
 
 func commandExit(cfg *config, cache *pokecache.Cache, parameter string, pokedex map[string]PokeStats) error {
-  fmt.Print("Closing the Pokedex... Goodbye!")
+  fmt.Println("Closing the Pokedex... Goodbye!")
   os.Exit(0)
 
   return nil
@@ -193,7 +205,7 @@ func commandCatch (cfg *config, cache *pokecache.Cache, name string, pokedex map
 
   probablility := rand.Intn(config1.BaseExperience) % 10
 
-  if probablility > 8 {
+  if probablility > 1 {
     fmt.Printf("%s was caught!\n", name)
     pokedex[name] = config1
     return nil
@@ -204,4 +216,37 @@ func commandCatch (cfg *config, cache *pokecache.Cache, name string, pokedex map
   return nil
 }
 
-func 
+func commandInspect(cfg *config, cache *pokecache.Cache, name string, pokedex map[string]PokeStats) error {
+  pokestats, exists := pokedex[name]
+  if !exists {
+    fmt.Println("you have not caught that pokemon")
+  }
+
+  fmt.Println("Name: ", pokestats.Name)
+  fmt.Println("Height: ", pokestats.Height)
+  fmt.Println("Weight: ", pokestats.Weight)
+  fmt.Println("Stats: ")
+  for _, stat := range pokestats.Stats {
+    fmt.Printf("  -%s: %d\n", stat.Stat.Name, stat.BaseStat)
+  }
+  fmt.Println("Types:")
+  for _, types := range pokestats.Types {
+    fmt.Printf("  - %s\n", types.Type.Name)
+  }
+  fmt.Println("")
+
+  return nil
+} 
+
+func commandPokedex(cfg *config, cache *pokecache.Cache, name string, pokedex map[string]PokeStats) error {
+  if len(pokedex) == 0 {
+    fmt.Println("You have not caught any Pokemon")
+    return nil
+  }
+  fmt.Println("Your Pokedex:")
+  for name, _ := range pokedex {
+    fmt.Printf("  - %s\n", name)
+  }
+
+  return nil
+}

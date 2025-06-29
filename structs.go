@@ -11,20 +11,43 @@ type cliCommands struct {
 }
 
 type config struct {
-  Next     *string `json:"next"`
-  Previous *string `json:"previous"`
-  Results []LocationArea `json:"results"`
+  Next       *string         `json:"next"`
+  Previous   *string         `json:"previous"`
+  Results    []LocationArea  `json:"results"`
 }
 
 type LocationArea struct {
-	Name                 string `json:"name"`
-	PokemonEncounter []PokemonEncounters `json:"pokemon_encounters"`
+	Name              string               `json:"name"`
+	PokemonEncounter  []PokemonEncounters  `json:"pokemon_encounters"`
 }
 
 type PokeStats struct {
-  BaseExperience int `json:"base_experience"`
+  BaseExperience  int         `json:"base_experience"`
+  Height          int         `json:"height"`
+  Weight          int         `json:"weight"`
+  Stats           []Stats     `json:"stats"`
+  Types           []Types     `json:"types"`
+  Name            string      `json:"name"`
 }
 
+type Stat struct {
+	Name  string     `json:"name"`
+	URL   string     `json:"url"`
+}
+
+type Stats struct {
+  BaseStat  int     `json:"base_stat"` 
+	Stat      Stat    `json:"stat"`
+}
+
+type Type struct {
+	Name  string     `json:"name"`
+	URL   string     `json:"url"`
+}
+
+type Types struct {
+	Type    Type      `json:"type"`
+}
 
 type PokemonEncounters struct {
   Pokemon struct {
